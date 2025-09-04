@@ -1,0 +1,233 @@
+---
+# Preamble
+
+## Author
+author:
+  name: Верниковская Екатерина Андреевна
+  degrees: DSc
+  orcid: 0000-0002-0877-7063
+  email: kulyabov-ds@rudn.ru
+  affiliation:
+    - name: Российский университет дружбы народов
+      country: Российская Федерация
+      postal-code: 117198
+      city: Москва
+      address: ул. Миклухо-Маклая, д. 6
+## Title
+title: "Отчёт по лабораторной работе №1"
+subtitle: "Дисциплина: Администрирование сетевых подсистем"
+license: "CC BY"
+## Generic options
+lang: ru-RU
+number-sections: true
+toc: true
+toc-title: "Содержание"
+toc-depth: 2
+## Crossref customization
+crossref:
+  lof-title: "Список иллюстраций"
+  lot-title: "Список таблиц"
+  lol-title: "Листинги"
+## Bibliography
+bibliography:
+  - bib/cite.bib
+csl: _resources/csl/gost-r-7-0-5-2008-numeric.csl
+## Formats
+format:
+### Pdf output format
+  pdf:
+    toc: true
+    number-sections: true
+    colorlinks: false
+    toc-depth: 2
+    lof: true # List of figures
+    lot: true # List of tables
+#### Document
+    documentclass: scrreprt
+    papersize: a4
+    fontsize: 12pt
+    linestretch: 1.5
+#### Language
+    babel-lang: russian
+    babel-otherlangs: english
+#### Biblatex
+    cite-method: biblatex
+    biblio-style: gost-numeric
+    biblatexoptions:
+      - backend=biber
+      - langhook=extras
+      - autolang=other*
+#### Misc options
+    csquotes: true
+    indent: true
+    header-includes: |
+      \usepackage{indentfirst}
+      \usepackage{float}
+      \floatplacement{figure}{H}
+      \usepackage[math,RM={Scale=0.94},SS={Scale=0.94},SScon={Scale=0.94},TT={Scale=MatchLowercase,FakeStretch=0.9},DefaultFeatures={Ligatures=Common}]{plex-otf}
+### Docx output format
+  docx:
+    toc: true
+    number-sections: true
+    toc-depth: 2
+---
+
+# Цель работы
+
+Целью данной работы является приобретение практических навыков установки Rocky Linux на виртуальную машину с помощью инструмента Vagrant.
+
+# Задание
+
+1. Сформировать box-файл с дистрибутивом Rocky Linux для VirtualBox
+2. Запустить виртуальные машины сервера и клиента и убедиться в их работоспособности
+3. Внести изменения в настройки загрузки образов виртуальных машин server
+и client, добавив пользователя с правами администратора и изменив названия хостов 
+4. Скопировать необходимые для работы с Vagrant файлы и box-файлы виртуальных машин на внешний носитель. Используя эти файлы, мы можем попробовать развернуть виртуальные машины на другом компьютере. 
+
+# Выполнение лабораторной работы
+
+## Подготовка рабочего каталога
+
+Подготовка лабораторного стенда проводилась в OC Linux. Были установлены заранее:
+
+- Vagrant v2.4.9
+- VirtualBox v7.2.0
+- Packer v1.14.1
+
+Перед началом лабораторной работы был создан каталог */var/tmp/eavernikovskaya*, в котором проводилась работа. В нём создали 2 подкотолога *packer* и *vagrant*, где находились скрипты, конфигурационные файлы, необходимые для сборки box-файла, а так же образ iso ОС Rocky Linux v10.0 ([рис. @fig-001])
+
+![Структура рабочего каталога](image/лаба1_1.png){#fig-001 width=70%}
+
+Также сделали несколько изменений в файлах *vagrant/default/01-user.sh* и *vagrant/default/01-hostname.sh*, присвоили пременной username значение eavernikovskaya ([рис. @fig-002]), ([рис. @fig-003])
+
+![Редактрование файла 01-user.sh](image/лаба1_2.png){#fig-002 width=70%}
+
+![Редактрование файла 01-hostname.sh](image/лаба1_3.png){#fig-003 width=70%}
+
+## Развёртывание лабораторного стенда на ОС Linux
+
+Далее перешли в каталог c проектом (в нём также располагается образ OC Linux Rocky): ```cd /var/tmp/eavernikovskaya/packer```. И псмотрели перечень целей в Makefile: ```makе help``` ([рис. @fig-004])
+
+![Переход в каталог packer и перечень целей](image/лаба1_4.png){#fig-004 width=70%}
+
+Для формирования box-файла с дистрибутивом Rocky Linux для VirtualBox в терминале набрали ```make init``` и ```make virtualbox```. Начнётся процесс скачивания, распаковки и установки драйверов VirtualBox и дистрибутива ОС на виртуальную машину ([рис. @fig-005]), ([рис. @fig-006])
+
+![Команда make init](image/лаба1_5.png){#fig-005 width=70%}
+
+![Команда make virtualbox](image/лаба1_6.png){#fig-006 width=70%}
+
+После завершения в каталоге packer сформировался образ *vagrant-virtualbox-rockylinux10-x86_64.box* ([рис. @fig-007])
+
+![Сформировавшийся box-файл](image/лаба1_7.png){#fig-007 width=70%}
+ 
+Скопировали box-файл в подкаталог *vagrant* ([рис. @fig-008])
+
+![Копирование box-файла](image/лаба1_8.png){#fig-008 width=70%}
+
+Для регистрации образа виртуальной машины в Vagrant в терминале в каталоге /var/tmp/eavernikovskaya/vagrant наберали ```make addbox```. Это позволит на основе конфигурации, прописанной в файле Vagrantfile, сформировать box-файлы образов двух виртуальных машин — сервера и клиента с возможностью их параллельной или индивидуальной работы ([рис. @fig-009])
+
+![Регистрация браза в Vagrant](image/лаба1_9.png){#fig-009 width=70%}
+
+Далее запустили виртуальную машину Server, введя ```make server-up``` ([рис. @fig-010])
+
+![Запуск виртуальной машины server](image/лаба1_10.png){#fig-010 width=70%}
+
+Далее запустили виртуальную машину Client, введя ```make client-up``` ([рис. @fig-011])
+
+![Запуск виртуальной машины client](image/лаба1_11.png){#fig-011 width=70%}
+
+Появились две виртуальные машины - server и client ([рис. @fig-012])
+
+![Виртуальные машины server и client](image/лаба1_12.png){#fig-012 width=70%}
+
+После подключились к серверу из консоли: ```vagrant ssh server```. Ввели пароль vagrant. Далее перешли к пользователю eavernikovskaya: ```su - eavernikovskaya```. Также ввели пароль, а затем отлогинились ([рис. @fig-013])
+
+![Подключение к серверу из консоли](image/лаба1_13.png){#fig-013 width=70%}
+
+Далее проделали тоже самое для клиента ([рис. @fig-014])
+
+![Подключение к клиенту из консоли](image/лаба1_14.png){#fig-014 width=70%}
+
+После выключили обе виртуальные машины с помощью ```make server-halt``` и ```make client-halt``` ([рис. @fig-015])
+
+![Выключение виртуальных машин](image/лаба1_15.png){#fig-015 width=70%}
+
+Далее убедились, что запуск обеих виртуальных машин прошёл успешно. Залогинились под пользователем vagrant с паролем vagrant в графическом окружении ([рис. @fig-016]), ([рис. @fig-017])
+
+![Работа в графическом окружении сервера](image/лаба1_16.png){#fig-016 width=70%}
+
+![Работа в графическом окружении клиента](image/лаба1_17.png){#fig-017 width=70%}
+
+## Внесение изменений в настройки внутреннего окружения виртуальной машины
+
+Проверили что в файле Vagrantfile есть следующая запись:
+
+```
+# Common configuration
+config.vm.provision "common user",
+type: "shell",
+preserve_order: true,
+path: "provision/default/01-user.sh"
+config.vm.provision "common hostname",
+type: "shell",
+preserve_order: true,
+run: "always",
+path: "provision/default/01-hostname.sh"
+```
+
+([рис. @fig-018])
+
+![Файл Vagrantfile](image/лаба1_18.png){#fig-018 width=70%}
+
+Далее зафиксировали внесённые изменения для внутренних настроек виртуальных машин, введя в терминале ```make server-provision```, затем ```make client-provision``` ([рис. @fig-019]), ([рис. @fig-020])
+
+![Фиксирование изменений настроек сервера](image/лаба1_19.png){#fig-019 width=70%}
+
+![Фиксирование изменений настроек клиента](image/лаба1_20.png){#fig-020 width=70%}
+
+После залогинились на сервере и клиенте под созданным пользователем. Убедиличь,что в терминале приглашение отображается в виде eavernikovskaya@server.eavernikovskaya.net на сервере и в виде eavernikovskaya@client.eavernikovskaya.net на клиенте ([рис. @fig-021]), ([рис. @fig-022])
+
+![Проверка отображения приглашения на сервере](image/лаба1_21.png){#fig-021 width=70%}
+
+![Проверка отображения приглашения на клиенте](image/лаба1_22.png){#fig-022 width=70%}
+
+После этого выключили виртуальные машины
+
+## Контрольные вопросы + ответы
+
+1. Для чего предназначен Vagrant?
+
+- Vagrant используется для создания и конфигурирования виртуальной среды разработки, при чем создаваемое окружение можно легко повторять и переносить
+
+2. Что такое box-файл? В чём назначение Vagrantfile?
+
+- box-файл содержит образ виртуальной машины, Vagrantfile, в котором дается описание машины и информация, как настроить и подготовить ее к работе
+
+3. Приведите описание и примеры вызова основных команд Vagrant.
+
+- Создание и запуск виртуальной машины: vargrant up
+- Вход: vagrant ssh
+- Остановка маишны: vagrant halt
+- Удаление собранной машины: vagrant destroy
+
+4. Дайте построчные пояснения содержания файлов vagrant-rocky.pkr.hcl, ks.cfg, Vagrantfile, Makefile.
+
+- Файл vagrant-rocky.pkr.hcl
+Блок packer устанавливает, что для работы необходимы версии vagrant и VirtualBox не ниже 1 (version = "∼> 1"). Затем идут блоки variable, где задаются переменные, которые будут использоваться в работе скрипта, например имя ВМ, версия, размер дискового пространства, архитектура процессора и т.д. Блок source задает конфигурацию сборщики с возможностью переиспользования. В нашем случае задаются параметры сборки виртуальной машины в VirtualBox, какой образ использовать, сколько выделить оперативной памяти, ядер процессора. Последний блок build описывает сам процесс сборки. Здесь указаны скрипты, которые будут запущены: настройка каталогов, установка необходимых для работы утилит.
+- ks.cfg
+В этом файле мы задаем настройки для установки дистрибутива, которые обычно выбираются пользователем вручную при установки дистрибутива. Определяем системный язык, необходимые раскладки клавиатуры (русская и английская), логин и пароль root-пользователя, настраиваем swap.
+- Vagrantfile
+Описываем конфигурацию запуска виртуальных машин сервера и клиента: количество оперативной памяти, видеопамяти, имя хоста, настройки VBoxAddtions.
+- Makefile
+Содержат скрипты для программы make, упрощающие работу с vagrant. Содержит следющие цели: addbox, client-destroy,client-halt, client-provision, client-up, plugins, server-destroy, server-halt, server-provision, server-up, каждая из которых вызавает утилиту vagrant с соответствующими параметрами
+
+# Выводы
+
+В хое выполнения лабораторной работы №1 мы приобрели практические навыки установки Rocky Linux на виртуальную машину с помощью инструмента Vagrant. 
+
+# Список литературы
+
+1. [Лаборатораня работа №1](https://esystem.rudn.ru/pluginfile.php/2854725/mod_resource/content/11/001-vagrant.pdf)
+2. [VirtualBox](https://www.virtualbox.org/)
+3. [Vagrant](https://developer.hashicorp.com/vagrant)
+4. [Packer](https://developer.hashicorp.com/packer)
