@@ -1,0 +1,651 @@
+---
+# Preamble
+
+## Author
+author:
+  name: Верниковская Екатерина Андреевна
+  degrees: DSc
+  orcid: 0000-0002-0877-7063
+  email: kulyabov-ds@rudn.ru
+  affiliation:
+    - name: Российский университет дружбы народов
+      country: Российская Федерация
+      postal-code: 117198
+      city: Москва
+      address: ул. Миклухо-Маклая, д. 6
+## Title
+title: "Отчёт по лабораторной работе №2"
+subtitle: "Дисциплина: Администрирование сетевых подсистем"
+license: "CC BY"
+## Generic options
+lang: ru-RU
+number-sections: true
+toc: true
+toc-title: "Содержание"
+toc-depth: 2
+## Crossref customization
+crossref:
+  lof-title: "Список иллюстраций"
+  lot-title: "Список таблиц"
+  lol-title: "Листинги"
+## Bibliography
+bibliography:
+  - bib/cite.bib
+csl: _resources/csl/gost-r-7-0-5-2008-numeric.csl
+## Formats
+format:
+### Pdf output format
+  pdf:
+    toc: true
+    number-sections: true
+    colorlinks: false
+    toc-depth: 2
+    lof: true # List of figures
+    lot: true # List of tables
+#### Document
+    documentclass: scrreprt
+    papersize: a4
+    fontsize: 12pt
+    linestretch: 1.5
+#### Language
+    babel-lang: russian
+    babel-otherlangs: english
+#### Biblatex
+    cite-method: biblatex
+    biblio-style: gost-numeric
+    biblatexoptions:
+      - backend=biber
+      - langhook=extras
+      - autolang=other*
+#### Misc options
+    csquotes: true
+    indent: true
+    header-includes: |
+      \usepackage{indentfirst}
+      \usepackage{float}
+      \floatplacement{figure}{H}
+      \usepackage[math,RM={Scale=0.94},SS={Scale=0.94},SScon={Scale=0.94},TT={Scale=MatchLowercase,FakeStretch=0.9},DefaultFeatures={Ligatures=Common}]{plex-otf}
+### Docx output format
+  docx:
+    toc: true
+    number-sections: true
+    toc-depth: 2
+---
+
+# Цель работы
+
+Целью данной работы является приобретение практических навыков по установке и конфигурированию DNSсервера, усвоение принципов работы системы доменных имён.
+
+# Задание
+
+1. Установить на виртуальной машине server DNS-сервер bind и bind-utils
+2. Сконфигурировать на виртуальной машине server кэширующий DNS-сервер 
+3. Сконфигурировать на виртуальной машине server первичный DNS-сервер 
+4. При помощи утилит dig и host проанализировать работу DNS-сервера 
+5. Написать скрипт для Vagrant, фиксирующий действия по установке и конфигурированию DNS-сервера во внутреннем окружении виртуальной машины server. Соответствующим образом внести изменения в Vagrantfile
+
+# Выполнение лабораторной работы
+
+## Установка DNS-сервера
+
+Загрузили нашу операционную систему и перешли в рабочий каталог с проектом: ```cd /var/tmp/eavernikovskaya/vagrant``` ([рис. @fig-001])
+
+![Рабочий каталог с проектом](image/лаба2_1.png){#fig-001 width=70%}
+
+Запустили виртуальную машину server: ```make server-up``` ([рис. @fig-002]) 
+
+![Запуск виртуальной машины server](image/лаба2_2.png){#fig-002 width=70%}
+
+Далее на виртуальной машине server вошли под созданным нами в предыдущей работе пользователем и открыли терминал. Перешли в режим суперпользователя: ```sudo -i``` ([рис. @fig-003])
+
+![Переход в режим суперпользователя](image/лаба2_3.png){#fig-003 width=70%}
+
+Далее установили bind и bind-utils: ```dnf -y install bind bind-utils``` ([рис. @fig-004])
+
+![Установка bind и bind-utils](image/лаба2_4.png){#fig-004 width=70%}
+
+Далее с помощью утилиты *dig* сделаем запрос к DNS-адресу www.yandex.ru: ```dig www.yandex.ru``` ([рис. @fig-005])
+
+![Запрос с помощью утилиты dig](image/лаба2_5.png){#fig-005 width=70%}
+
+Анализ выведенной на экран информации: 
+
+Утилита dig (domain information groper) предоставляет пользователю интерфейс командной строки для обращения к системе DNS, позволяет формировать запросы о доменах DNS-серверам. Это инструмент для запроса DNS-серверов. В данном случае она запросила у DNS-сервера IP-адреса, связанные с доменным именем www.yandex.ru 
+
+1. Проблема: таймаут соединения с DNS-сервером 8.8.8.8.
+
+2. Решение: запрос автоматически перешел на резервный сервер 1.1.1.1.
+
+3. Результат: успешный ответ с тремя IP-адресами для www.yandex.ru:
+
+- 77.88.55.88
+
+- 5.255.255.77
+
+- 77.88.44.55
+
+4. Время: запрос выполнен за 14 мс.
+
+## Конфигурирование кэширующего DNS-сервера
+
+### Конфигурирование кэширующего DNS-сервера при отсутствии фильтрации DNS-запросов маршрутизаторами
+
+Посмотрим содержание файлов */etc/resolv.conf*, */etc/named.conf*, */var/named/named.ca*, */var/named/named.localhost* и */var/named/named.loopback* ([рис. @fig-006]), ([рис. @fig-007]), ([рис. @fig-008]), ([рис. @fig-009]), ([рис. @fig-010])
+
+![Файл /etc/resolv.conf](image/лаба2_6.png){#fig-006 width=70%}
+
+![Файл /etc/named.conf](image/лаба2_7.png){#fig-007 width=70%}
+
+![Файл /var/named/named.ca](image/лаба2_8.png){#fig-008 width=70%}
+
+![Файл /var/named/named.localhost](image/лаба2_9.png){#fig-009 width=70%}
+
+![Файл /var/named/named.loopback](image/лаба2_10.png){#fig-010 width=70%}
+
+Анализ файла */etc/resolv.conf*: 
+
+- Конфигурация DNS-клиента
+
+- Указаны DNS-серверы: 8.8.8.8 (Google) и 1.1.1.1 (Cloudflare) как резервный
+
+- Система использует публичные DNS-серверы
+
+Анализ файла */etc/named.conf*:
+
+- Основной конфигурационный файл BIND (DNS-сервер)
+
+- Сервер настроен только для localhost (127.0.0.1)
+
+- DNS-сервер работает только для локальных запросов
+
+Анализ файла */var/named/named.ca*:
+
+- Корневые DNS-серверы интернета
+
+- Список root-серверов (A.ROOT-SERVERS.NET и т.д.)
+
+- Кэш корневых серверов для работы DNS
+
+Анализ файла */var/named/named.localhost*:
+
+- Зона localhost для прямых запросов
+
+- Настройки зоны для localhost (127.0.0.1)
+
+- Базовая конфигурация для локальной зоны
+
+Анализ файла */var/named/named.loopback*:
+
+- Зона обратных запросов для localhost
+
+- Обратная зона для 127.0.0.1
+
+- Настройки reverse DNS для локальной сети
+
+Запустили DNS-сервер: ```systemctl start named``` ([рис. @fig-011])
+
+![Запуск DNS-сервера](image/лаба2_11.png){#fig-011 width=70%}
+
+Далее включили запуск DNS-сервера в автозапуск при загрузке системы: ```systemctl enable named``` ([рис. @fig-012])
+
+![Включение запуска DNS-сервера в автозапуск при загрузке системы](image/лаба2_12.png){#fig-012 width=70%}
+
+Теперь выполним команду ```dig @127.0.0.1 www.yandex.ru``` ([рис. @fig-013])
+
+![Команда dig @127.0.0.1 www.yandex.ru](image/лаба2_13.png){#fig-013 width=70%}
+
+При выполнении команды ```dig www.yandex.ru``` 1.1.1.1 (публичный DNS Cloudflare) - использовался автоматически, а при выполнении команды ```dig @127.0.0.1 www.yandex.ru``` @127.0.0.1 (локальный DNS-сервер) - указан явно. Так же при выполнении выторой команды появилась секция COOKIE (механизм безопасности DNS)
+
+Далее сделали DNS-сервер сервером по умолчанию для хоста server и внутренней виртуальной сети. Для этого мы изменили настройки сетевого соединения eth0 в NetworkManager, переключив его на работу с внутренней сетью и указав для него в качестве DNS-сервера по умолчанию адрес 127.0.0.1:
+
+```nmcli connection edit eth0```
+ 
+```remove ipv4.dns```
+
+```set ipv4.ignore-auto-dns yes```
+
+```set ipv4.dns 127.0.0.1```
+
+```save```
+
+```quit``` ([рис. @fig-014])
+
+![Настройка DNS-сервеа сервером по умолчанию для хочта server и внутренней виртуальной сети](image/лаба2_14.png){#fig-014 width=70%}
+
+Далее перезапустили NetworkManager: ```systemctl restart NetworkManager``` ([рис. @fig-015])
+
+![Перезапуск NetworkManager](image/лаба2_15.png){#fig-015 width=70%}
+
+И проверили наличие изменений в файле */etc/resolv.conf* ([рис. @fig-016])
+
+![Изменения в файле /etc/resolv.conf](image/лаба2_16.png){#fig-016 width=70%}
+
+Теперь нам требовалось настроить направление DNS-запросов от всех узлов внутренней сети, включая запросы от узла server, через узел server. Для мы внесли изменения в файл */etc/named.conf*, заменив строку ```listen-on port 53 { 127.0.0.1; };``` на ```listen-on port 53 { 127.0.0.1; any; };``` и строку
+```allow-query { localhost; };``` на ```allow-query { localhost; 192.168.0.0/16; };``` ([рис. @fig-017])
+
+![Редактирование файла /etc/named.conf (1)](image/лаба2_17.png){#fig-017 width=70%}
+
+Далее внесли изменения в настройки межсетевого экрана узла server, разрешив работу с DNS: ```firewall-cmd --add-service=dns``` и  ```firewall-cmd --add-service=dns --permanent``` ([рис. @fig-018])
+
+![Внос изменений в настройки межсетевого экрана узла server, разрешив работу DNS](image/лаба2_18.png){#fig-018 width=70%}
+
+Далее убедились что DNS-запросы идут через узел server, который прослушивает порт 53. Для этого на данном этапе мы использовали команду lsof: ```lsof | grep UDP``` ([рис. @fig-019])
+
+![Проверка что DNS-запросы идут через узел server, который прослушивает порт 53](image/лаба2_19.png){#fig-019 width=70%}
+
+### Конфигурирование кэширующего DNS-сервера при наличии фильтрации DNS-запросов маршрутизаторами
+
+Далее внесём ещё одни изменения в конфигурационный файл *named.conf*. В секцию options добавили:
+
+```
+forwarders { 127.0.0.1; };
+forward first;
+```
+
+также указали в этом же файле настройки: 
+
+```
+dnssec-enable no; 
+dnssec-validation no; 
+```
+
+([рис. @fig-020])
+
+![Редактирование файла /etc/named.conf (2)](image/лаба2_20.png){#fig-020 width=70%}
+
+## Конфигурирование первичного DNS-сервера
+
+Далее скопировали шаблон описания DNS-зон *named.rfc1912.zones* из каталога */etc* в каталог */etc/named* и переименовали его в *eavernikovskaya.net*: 
+
+```cp /etc/named.rfc1912.zones /etc/named/```, 
+
+```cd /etc/named```,
+
+```mv /etc/named/named.rfc1912.zones /etc/named/eavernikovskaya.net``` 
+
+([рис. @fig-021])
+
+![Копирование шаблона описания DNS-зон из каталога /etc в каталог /etc/named и его переименование](image/лаба2_21.png){#fig-021 width=70%}
+
+После включили файл описания зоны */etc/named/eavernikovskaya.net* в конфигурационном файле DNS */etc/named.conf*, добавив в нём в конце строку: ```include "/etc/named/eavernikovskaya.net";``` ([рис. @fig-022])
+
+![Включение файла описания зоны /etc/named/user.net в конфигурационном файле DNS /etc/named.conf](image/лаба2_22.png){#fig-022 width=70%}
+
+Далее открыли файл */etc/named/user.net* на редактирование и вместо зоны
+
+```
+zone "localhost.localdomain" IN {
+type primary;
+file "named.localhost";
+allow-update { none; };
+};
+```
+
+прописали  свою прямую зону:
+
+```
+zone "eavernikovskaya.net" IN {
+type primary;
+file "primary/fz/eavernikovskaya.net";
+allow-update { none; };
+};
+```
+
+Далее вместо зоны 
+
+```
+zone "1.0.0.127.in-addr.arpa" IN {
+type primary;
+file "named.loopback";
+allow-update { none; };
+};
+```
+
+прописали свою обратную зону:
+
+```
+zone "1.168.192.in-addr.arpa" IN {
+type primary;
+file "primary/rz/192.168.1";
+allow-update { none; };
+}; 
+```
+
+Остальные записи в файле */etc/named/eavernikovskaya.net* удалили ([рис. @fig-023])
+
+![Редактирование файла /etc/named/eavernikovskaya.net](image/лаба2_23.png){#fig-023 width=70%}
+
+После в каталоге */var/named* создали подкаталоги *primary/fz* и *primary/rz*, в которых будут асполагаться файлы прямой и обратной зоны соответственно: 
+
+```cd /var/named```, 
+
+```mkdir -p /var/named/primary/fz```,
+
+```mkdir -p /var/named/primary/rz``` 
+
+([рис. @fig-024])
+
+![Создание каталогов для файлов прямой и обратной зоны](image/лаба2_24.png){#fig-024 width=70%}
+
+Далее скопировали шаблон прямой DNS-зоны *named.localhost* из каталога */var/named* в каталог */var/named/primary/fz* и переименовали его в eavernikovskaya.net: 
+
+```cp /var/named/named.localhost /var/named/primary/fz/```, 
+
+```cd /var/named/primary/fz/```,
+
+```mv named.localhost eavernikovskaya.net``` 
+
+([рис. @fig-025])
+
+![Копирование шаблона прямой DNS-зоны named.localhost из каталога /var/named в каталог /var/named/primary/fz и его переименование](image/лаба2_25.png){#fig-025 width=70%}
+
+Далее изменили файл */var/named/primary/fz/eavernikovskaya.net*, указав необходимые DNS-записи для прямой зоны: 
+
+```
+$TTL 1D
+@	IN SOA	@ server.eavernikovskaya.net. (
+					2025090800	; serial
+					1D	; refresh
+					1H	; retry
+					1W	; expire
+					3H )	; minimum
+	NS	@
+	A	192.168.1.1
+$ORIGIN eavernikovskaya.net.
+server	A	192.168.1.1
+ns	A	192.168.1.1 
+```
+
+([рис. @fig-026])
+
+![Редактирование файла /var/named/primary/fz/eavernikovskaya.net](image/лаба2_26.png){#fig-026 width=70%}
+
+Далее скопировали шаблон обратной DNS-зоны *named.loopback* из каталога */var/named* в каталог */var/named/primary/rz* и переименовали  его в 192.168.1: 
+
+```cp /var/named/named.loopback /var/named/primary/rz/```, 
+
+```cd /var/named/primary/rz/```,
+
+ ```mv named.loopback 192.168.1``` 
+ 
+([рис. @fig-027]), ([рис. @fig-028])
+
+![Копирование шаблона обратной DNS-зоны named.localhost из каталога /var/named в каталог /var/named/primary/rz и его переименование](image/лаба2_27.png){#fig-027 width=70%}
+
+![Переименование файла](image/лаба2_28.png){#fig-028 width=70%}
+
+После изменили файл */var/named/primary/rz/192.168.1*, указав необходимые DNS-записи для обратной зоны:
+
+```
+$TTL 1D
+@	IN SOA	@ server.eavernikovskaya.net. (
+					2025090800	; serial
+					1D	; refresh
+					1H	; retry
+					1W	; expire
+					3H )	; minimum
+	NS	@
+	A	192.168.1.1
+	PTR	server.eavernikovskaya.net.
+$ORIGIN	1.168.192.in-addr.arpa.
+1	PTR	server.eavernikovskaya.net.
+1	PTR	ns.eavernikovskaya.net. 
+```
+([рис. @fig-029])
+
+![Редактирование файла /var/named/primary/rz/192.168.1](image/лаба2_29.png){#fig-029 width=70%}
+
+Далее исправили права доступа к файлам в каталогах */etc/named* и */var/named*, чтобы демон named мог с ними работать: ```chown -R named:named /etc/named``` и ```chown -R named:named /var/named``` ([рис. @fig-030])
+
+![Изменение прав доступа к файлам в каталогах /etc/named и /var/named](image/лаба2_30.png){#fig-030 width=70%}
+
+Далее после изменения доступа к конфигурационным файлам named восстановили их метки в SELinux: ```restorecon -vR /etc``` и ```restorecon -vR /var/named``` ([рис. @fig-031])
+
+![Восстановление метов в SELinux](image/лаба2_31.png){#fig-031 width=70%}
+
+Проверили состояния переключателей SELinux, относящихся к named с помощью ```getsebool -a | grep named``` ([рис. @fig-032])
+
+![Проверка состояния переключателей SELinux, относящихся к named](image/лаба2_32.png){#fig-032 width=70%}
+
+Дали named разрешение на запись в файлы DNS-зоны: ```setsebool named_write_master_zones 1``` и ```setsebool -P named_write_master_zones 1``` ([рис. @fig-033])
+
+![Рарешение на запись в файлы DNS-зоны для named](image/лаба2_33.png){#fig-033 width=70%}
+
+Далее в дополнительном терминале запустили в режиме реального времени расширенный лог системных сообщений, чтобы проверить корректность работы системы: ```journalctl -x -f``` ([рис. @fig-034]), ([рис. @fig-035])
+
+![Лог системных сообщений. Есть ошибки :(](image/лаба2_34.png){#fig-034 width=70%}
+
+![Статус named](image/лаба2_35.png){#fig-035 width=70%}
+
+После обнаружения ошибок, устранили их и в первом терминале перезапустили DNS-сервер: ```systemctl restart named``` ([рис. @fig-036]), ([рис. @fig-037])
+
+![Перезапуск DNS-сервера](image/лаба2_36.png){#fig-036 width=70%}
+
+![Лог системных сообщений. Без ошибок :)](image/лаба2_37.png){#fig-037 width=70%}
+
+## Анализ работы DNS-сервера
+
+При помощи утилиты *dig* получили описание DNS-зоны с сервера ns.eavernikovskaya.net с помощью ```dig ns.user.net``` ([рис. @fig-038])
+
+![Получение описания DNS-зоны с сервера ns.eavernikovskaya.net](image/лаба2_38.png){#fig-038 width=70%}
+
+Анализ выведенной на экран информации: 
+
+Команда dig ns.eavernikovskaya.net запросила IP-адрес DNS-сервера домена.
+
+- Сервер: 127.0.0.1 (локальный)
+
+- Ответ: ns.eavernikovskaya.net = 192.168.1.1
+
+- Статус: aa (authoritative answer) - ответ авторитативный
+ 
+- Время: 1 мс (очень быстро)
+
+Локальный DNS-сервер авторитативно отвечает, что DNS-сервер домена находится по адресу 192.168.1.1. 
+
+Далее при помощи команды *host* проанализировали корректность работы DNS-сервера: 
+
+```host -l eavernikovskaya.net```, 
+
+```host -a eavernikovskaya.net```, 
+
+```host -t A eavernikovskaya.net```,
+
+```host -t PTR 192.168.1.1``` 
+
+([рис. @fig-039]), ([рис. @fig-040]), ([рис. @fig-041]), ([рис. @fig-042])
+
+![Команда host -l eavernikovskaya.net](image/лаба2_39.png){#fig-039 width=70%}
+
+![Команда host -a eavernikovskaya.net](image/лаба2_40.png){#fig-040 width=70%}
+
+![Команда host -t A eavernikovskaya.net](image/лаба2_41.png){#fig-041 width=70%}
+
+![Команда host -t PTR 192.168.1.1](image/лаба2_42.png){#fig-042 width=70%}
+
+## Внесение изменений в настройки внутреннего окружения виртуальной машины
+
+Далее на виртуальной машине server перещли в каталог для внесения изменений в настройки внутреннего окружения */vagrant/provision/server/*, создали в нём каталог *dns*, в который пместили в соответствующие каталоги конфигурационные файлы DNS: 
+
+```cd /vagrant```, 
+
+```mkdir -p /vagrant/provision/server/dns/etc/named```, 
+
+```mkdir -p /vagrant/provision/server/dns/var/named/primary/```, 
+
+```cp -R /etc/named.conf /vagrant/provision/server/dns/etc/```, 
+
+```cp -R /etc/named/* /vagrant/provision/server/dns/etc/named/```,
+
+```cp -R /var/named/primary/* /vagrant/provision/server/dns/var/named/primary/``` 
+
+([рис. @fig-043]), ([рис. @fig-044])
+
+![Создание каталога dns с нужными файлами](image/лаба2_43.png){#fig-043 width=70%}
+
+![Структура каталога dns](image/лаба2_44.png){#fig-044 width=70%}
+
+Далее в каталоге */vagrant/provision/server* создали исполняемый файл *dns.sh*: ```touch dns.sh``` и ```chmod +x dns.sh``` ([рис. @fig-045])
+
+![Создание исполняемого файла dns.sh](image/лаба2_45.png){#fig-045 width=70%}
+
+Далее отредактирвали файл *dns.sh*, прописав в нём этот скрипт: 
+
+```
+#!/bin/bash
+echo "Provisioning script $0"
+echo "Install needed packages"
+dnf -y install bind bind-utils
+echo "Copy configuration files"
+cp -R /vagrant/provision/server/dns/etc/* /etc
+cp -R /vagrant/provision/server/dns/var/named/* /var/named
+chown -R named:named /etc/named
+chown -R named:named /var/named
+restorecon -vR /etc
+restorecon -vR /var/named
+echo "Configure firewall"
+firewall-cmd --add-service=dns
+firewall-cmd --add-service=dns --permanent
+echo "Tuning SELinux"
+setsebool named_write_master_zones 1
+setsebool -P named_write_master_zones 1
+echo "Change dns server address"
+nmcli connection edit "System eth0" <<EOF
+remove ipv4.dns
+set ipv4.ignore-auto-dns yes
+set ipv4.dns 127.0.0.1
+save
+quit
+EOF
+systemctl restart NetworkManager
+echo "Start named service"
+systemctl enable named
+```
+
+([рис. @fig-046])
+
+![Редактирование файла dns.sh](image/лаба2_46.png){#fig-046 width=70%}
+
+Для отработки созданного скрипта во время загрузки виртуальной машины server в конфигурационном файле *Vagrantfile* добавили в разделе конфигурации для сервера:
+
+```
+server.vm.provision "server dns",
+type: "shell",
+preserve_order: true,
+path: "provision/server/dns.sh"
+```
+
+([рис. @fig-047])
+
+![Редактирование файла Vagrantfile](image/лаба2_47.png){#fig-047 width=70%}
+
+## Контрольные вопросы + ответы
+
+1. Что такое DNS?
+
+Это система, предназначенная для преобразования человекочитаемых доменных имен в IP-адреса, используемые компьютерами для идентификации друг друга в сети.
+
+2. Каково назначение кэширующего DNS-сервера?
+
+Его задача - хранить результаты предыдущих DNS-запросов в памяти. Когда клиент делает запрос, кэширующий DNS проверяет свой кэш, и если он содержит соответствующую информацию, сервер возвращает ее без необходимости обращаться к другим DNS-серверам. Это ускоряет процесс запроса.
+
+3. Чем отличается прямая DNS-зона от обратной?
+
+Прямая зона преобразует доменные имена в IP-адреса, обратная зона выполняет обратное: преобразует IP-адреса в доменные имена.
+
+4. В каких каталогах и файлах располагаются настройки DNS-сервера? Кратко охарактеризуйте, за что они отвечают.
+
+В Linux-системах обычно используется файл /etc/named.conf для общих настроек. Зоны хранятся в файлах в каталоге /var/named/, например, /var/named/example.com.zone
+
+5. Что указывается в файле resolv.conf?
+
+Содержит информацию о DNSсерверах, используемых системой, а также о параметрах конфигурации.
+
+6. Какие типы записи описания ресурсов есть в DNS и для чего они используются?
+
+A (IPv4-адрес), AAAA (IPv6-адрес), CNAME (каноническое имя), MX (почтовый сервер), NS (имя сервера), PTR (обратная запись), SOA (начальная запись зоны), TXT (текстовая информация).
+
+7. Для чего используется домен in-addr.arpa?
+
+Используется для обратного маппинга IP-адресов в доменные имена.
+
+8. Для чего нужен демон named?
+
+Это DNS-сервер, реализация BIND (Berkeley Internet Name Domain).
+
+9. В чём заключаются основные функции slave-сервера и master-сервера?
+
+Master-сервер хранит оригинальные записи зоны, slave-серверы получают копии данных от master-сервера
+
+10. Какие параметры отвечают за время обновления зоны?
+
+refresh, retry, expire, и minimum.
+
+11. Как обеспечить защиту зоны от скачивания и просмотра?
+
+Это может включать в себя использование TSIG (Transaction SIGnatures) для аутентификации между серверами.
+
+12. Какая запись RR применяется при создании почтовых серверов?
+
+MX (Mail Exchange).
+
+13. Как протестировать работу сервера доменных имён?
+
+Использовать команды nslookup, dig, или host.
+
+14. Как запустить, перезапустить или остановить какую-либо службу в системе?
+
+systemctl start|stop|restart <service>.
+
+15. Как посмотреть отладочную информацию при запуске какого-либо сервиса или службы?
+
+Использовать опции, такие как -d или -v при запуске службы.
+
+16. Где храниться отладочная информация по работе системы и служб? Как её посмотреть?
+
+В системных журналах, доступных через journalctl
+
+17. Как посмотреть, какие файлы использует в своей работе тот или иной процесс? Приведите несколько примеров.
+
+- lsof -p <pid> или fuser -v <file>
+
+18. Приведите несколько примеров по изменению сетевого соединения при помощи командного интерфейса nmcli.
+
+nmcli connection up|down <connection_name>.
+
+19. Что такое SELinux?
+
+Это мандатный контроль доступа для ядра Linux.
+
+20. Что такое контекст (метка) SELinux?
+
+Метка, определяющая, какие ресурсы могут быть доступны процессу или объекту.
+
+21. Как восстановить контекст SELinux после внесения изменений в конфигурационные файлы?
+
+restorecon -Rv <directory>.
+
+22. Как создать разрешающие правила политики SELinux из файлов журналов, содержащих сообщения о запрете операций?
+
+audit2allow.
+
+23. Что такое булевый переключатель в SELinux?
+
+Это параметр, который включает или отключает определенные аспекты защиты SELinux.
+
+
+24. Как посмотреть список переключателей SELinux и их состояние?
+
+getsebool -a.
+
+25. Как изменить значение переключателя SELinux?
+
+setsebool -P <boolean_name> <on|off>.
+
+# Выводы
+
+В ходе выполнения лабораторной работы №2 мы приобрели практические навыки по установке и конфигурированию DNSсервера, а также усвоили принципы работы системы доменных имён.
+
+# Список литературы
+
+1. [Лаборатораня работа №2](https://esystem.rudn.ru/pluginfile.php/2854732/mod_resource/content/8/002-dns.pdf)
