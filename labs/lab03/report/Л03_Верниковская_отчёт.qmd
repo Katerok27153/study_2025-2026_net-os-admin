@@ -1,0 +1,610 @@
+---
+# Preamble
+
+## Author
+author:
+  name: Верниковская Екатерина Андреевна
+  degrees: DSc
+  orcid: 0000-0002-0877-7063
+  email: kulyabov-ds@rudn.ru
+  affiliation:
+    - name: Российский университет дружбы народов
+      country: Российская Федерация
+      postal-code: 117198
+      city: Москва
+      address: ул. Миклухо-Маклая, д. 6
+## Title
+title: "Отчёт по лабораторной работе №3"
+subtitle: "Дисциплина: Администрирование сетевых подсистем"
+license: "CC BY"
+## Generic options
+lang: ru-RU
+number-sections: true
+toc: true
+toc-title: "Содержание"
+toc-depth: 2
+## Crossref customization
+crossref:
+  lof-title: "Список иллюстраций"
+  lot-title: "Список таблиц"
+  lol-title: "Листинги"
+## Bibliography
+bibliography:
+  - bib/cite.bib
+csl: _resources/csl/gost-r-7-0-5-2008-numeric.csl
+## Formats
+format:
+### Pdf output format
+  pdf:
+    toc: true
+    number-sections: true
+    colorlinks: false
+    toc-depth: 2
+    lof: true # List of figures
+    lot: true # List of tables
+#### Document
+    documentclass: scrreprt
+    papersize: a4
+    fontsize: 12pt
+    linestretch: 1.5
+#### Language
+    babel-lang: russian
+    babel-otherlangs: english
+#### Biblatex
+    cite-method: biblatex
+    biblio-style: gost-numeric
+    biblatexoptions:
+      - backend=biber
+      - langhook=extras
+      - autolang=other*
+#### Misc options
+    csquotes: true
+    indent: true
+    header-includes: |
+      \usepackage{indentfirst}
+      \usepackage{float}
+      \floatplacement{figure}{H}
+      \usepackage[math,RM={Scale=0.94},SS={Scale=0.94},SScon={Scale=0.94},TT={Scale=MatchLowercase,FakeStretch=0.9},DefaultFeatures={Ligatures=Common}]{plex-otf}
+### Docx output format
+  docx:
+    toc: true
+    number-sections: true
+    toc-depth: 2
+---
+
+# Цель работы
+
+Целью данной работы является приобретение практических навыков по установке и конфигурированию DHCP-сервера.
+
+# Задание
+
+1. Установить на виртуальной машине server DHCP-сервер 
+2. Настроить виртуальную машину server в качестве DHCP-сервера для виртуальной внутренней сети
+3. Проверить корректность работы DHCP-сервера в виртуальной внутренней сети
+путём запуска виртуальной машины client и применения соответствующих утилит диагностики
+4. Настроить обновление DNS-зоны при появлении в виртуальной внутренней сети новых узлов 
+5. Проверить корректность работы DHCP-сервера и обновления DNS-зоны в виртуальной внутренней сети путём запуска виртуальной машины client и применения соответствующих утилит диагностики
+6. Написать скрипт для Vagrant, фиксирующий действия по установке и настройке DHCP-сервера во внутреннем окружении виртуальной машины server
+
+# Выполнение лабораторной работы
+
+## Установка DHCP-сервера
+
+Загрузили нашу операционную систему и перешли в рабочий каталог с проектом: ```cd /var/tmp/eavernikovskaya/vagrant``` ([рис. @fig-001])
+
+![Рабочий каталог с проектом](image/лаба3_1.png){#fig-001 width=70%}
+
+Запустили виртуальную машину server: ```make server-up``` ([рис. @fig-002]) 
+
+![Запуск виртуальной машины server](image/лаба3_2.png){#fig-002 width=70%}
+
+Далее на виртуальной машине server вошли под созданным нами в предыдущей работе пользователем и открыли терминал. Перешли в режим суперпользователя: ```sudo -i``` ([рис. @fig-003])
+
+![Переход в режим суперпользователя](image/лаба3_3.png){#fig-003 width=70%}
+
+Далее установили dhcp: ```dnf -y install dhcp``` ([рис. @fig-004])
+
+![Установка dhcp](image/лаба3_4.png){#fig-004 width=70%}
+
+## Конфигурирование DHCP-сервера
+
+Далее сохранили на всякий случай конфигурационный файл: ```cp /etc/kea/kea-dhcp4.conf /etc/kea/kea-dhcp4.conf__$(date -I)``` ([рис. @fig-005])
+
+![Сохранение файла kea-dhcp4.conf](image/лаба3_5.png){#fig-005 width=70%}
+
+Далее открыли файл */etc/kea/kea-dhcp4.conf* на редактирование. В этом файле заменили шаблон для domain-name и прописали в описании следующие строчки ([рис. @fig-006]):
+
+```
+{
+	"code": 15,
+	"data": "eavernikovskaya.net"
+},
+
+{
+	"name": "domain-search",
+	"data": "eavernikovskaya.net"
+},
+```
+
+![Редактирование файла kea-dhcp4.conf (1)](image/лаба3_6.png){#fig-006 width=70%}
+
+Также прописали блок ([рис. @fig-007]):
+
+```
+{
+	"name": "domain-name-servers",
+	"data": "192.168.1.1"
+},
+```
+
+![Редактирование файла kea-dhcp4.conf (2)](image/лаба3_7.png){#fig-007 width=70%}
+
+После задали собственную конфигурацию dhcp-сети, задав адрес подсети, диапазон адресов для распределения клиентам, адрес маршрутизатора и broadcast-адрес, а остальные примеры задания конфигураций подсетей удалили ([рис. @fig-008]):
+
+```
+"subnet4": [
+	{
+		"id": 1,
+		// specify subnet that DHCP is used
+		"subnet": "192.168.1.0/24",
+		// specify the range of IP addresses to be leased
+		"pools": [ { "pool": "192.168.1.30 - 192.168.1.199" } ],
+		"option-data": [
+			{
+				// specify your gateway
+				"name": "routers",
+				"data": "192.168.1.1"
+			}
+		]
+	}
+],
+```
+
+![Редактирование файла kea-dhcp4.conf (3)](image/лаба3_8.png){#fig-008 width=70%}
+
+Также настроили привязку dhcpd к интерфейсу eth1 виртуальной машины server ([рис. @fig-009]):
+
+```
+"interfaces-config": {
+	"interfaces": [ "eth1" ]
+},
+```
+
+![Редактирование файла kea-dhcp4.conf (4)](image/лаба3_9.png){#fig-009 width=70%}
+
+Далее проверилили правильность конфигурационного файла: ```kea-dhcp4 -t /etc/kea/kea-dhcp4.conf``` ([рис. @fig-010])
+
+![Проверка правильности файла kea-dhcp4.conf](image/лаба3_10.png){#fig-010 width=70%}
+
+Перезагрузили конфигурацию dhcpd и разрешили загрузку DHCP-сервера при запуске виртуальной машины server: ```systemctl --system daemon-reload``` и ```systemctl enable kea-dhcp4.service``` ([рис. @fig-011])
+
+![Перезагрузка конфигурации и разрешение загрузки DHCP-сервера при запуске виртуальной машины server](image/лаба3_11.png){#fig-011 width=70%}
+
+Далее добавили запись для DHCP-сервера в конце файла прямой DNS-зоны */var/named/primary/fz/eavernikovskaya.net*: ```dhcp A 192.168.1.1``` ([рис. @fig-012])
+
+![Редактирование файла прямой DNS-зоны](image/лаба3_12.png){#fig-012 width=70%}
+
+А в конце файла обратной DNS-зоны */var/named/master/rz/192.168.1* добавили: ```1 PTR dhcp.eavernikovskaya.net.``` ([рис. @fig-013])
+
+![Редактирование файла обратной DNS-зоны](image/лаба3_13.png){#fig-013 width=70%}
+
+Перезапустили named: ```systemctl restart named``` ([рис. @fig-014])
+
+![Перезапуск named](image/лаба3_14.png){#fig-014 width=70%}
+
+Далее проверили что можно обратиться к DHCP-серверу по имени: ```ping dhcp.eavernikovskaya.net``` ([рис. @fig-015])
+
+![Проверка команды ping dhcp.eavernikovskaya.net](image/лаба3_15.png){#fig-015 width=70%}
+
+Внесли изменеия в настройки межсетевого экрана узла server, разрешив работу с DHCP с помощью команд: 
+
+```firewall-cmd --list-services```, 
+```firewall-cmd --get-services```, 
+```firewall-cmd --add-service=dhcp```,
+```firewall-cmd --add-service=dhcp --permanent``` ([рис. @fig-016])
+
+![Внесение изменений в настройки межсетевого экрана узла server, разрешив работу с DHCP](image/лаба3_16.png){#fig-016 width=70%}
+
+Далее восстановили контекст безопасности в SELinux:
+
+```restorecon -vR /etc```,
+```restorecon -vR /var/named```,
+```restorecon -vR /var/lib/kea/``` ([рис. @fig-017])
+
+![Восстановление контекста безопасности в SELinux](image/лаба3_17.png){#fig-017 width=70%}
+
+В дополнительном терминале запустили мониторинг происходящих в системе процессов в реальном времени: ```journalctl -u kea-dhcp4 -f``` ([рис. @fig-018])
+
+![Мониторинг процессов](image/лаба3_18.png){#fig-018 width=70%}
+
+В основном рабочем терминале запустили DHCP-сервер: ```systemctl start kea-dhcp4.service``` ([рис. @fig-019])
+
+![Запуск DHCP-сервера](image/лаба3_19.png){#fig-019 width=70%}
+
+Запуск DHCP-сервера прошёл успешно. Поэтому мы не выключая виртуальной машины server и не прерывая работу на ней мониторинга происходящих в системе процессов, приступили к анализу работы DHCP-сервера на клиенте
+
+## Анализ работы DHCP-сервера
+
+Перед запуском виртуальной машины client в каталоге с проектом в нашей операционной системе в подкаталоге *vagrant/provision/client* создали файл *01-routing.sh* со следующим скриптом:
+
+```
+#!/bin/bash
+echo "Provisioning script $0"
+nmcli connection modify "eth1" ipv4.gateway "192.168.1.1"
+nmcli connection up "eth1"
+nmcli connection modify eth0 ipv4.never-default true
+nmcli connection modify eth0 ipv6.never-default true
+nmcli connection down eth0
+nmcli connection up eth0
+# systemctl restart NetworkManager
+```
+
+Этот скрипт изменяет настройки NetworkManager так, чтобы весь трафик на виртуальной машине client шёл по умолчанию через интерфейс eth1 ([рис. @fig-020])
+
+![Файл 01-routing.sh](image/лаба3_20.png){#fig-020 width=70%}
+
+В *Vagrantfile* подключили этот скрипт в разделе конфигурации для клиента ([рис. @fig-021]):
+
+```
+client.vm.provision "client routing",
+type: "shell",
+preserve_order: true,
+run: "always",
+path: "provision/client/01-routing.sh"
+```
+
+![Подключение скрипта в файл Vagrantfile](image/лаба3_21.png){#fig-021 width=70%}
+
+Зафиксировали внесённые изменения для внутренних настроек виртуальной машины client и запустили её, введя в терминале: ```make client-provision``` ([рис. @fig-022])
+
+![Запуск виртуальной машины client](image/лаба3_22.png){#fig-022 width=70%}
+
+Вошли в систему виртуальной машины client под нашим пользователем и в терминале ввели ```ifconfig```. На экран вывелась информация об имеющихся сетевых интерфейсах ([рис. @fig-023])
+
+![Имеющиеся интерфейсы](image/лаба3_23.png){#fig-023 width=70%}
+
+Комментарии к выведенной информации команды ```ifconfig```:
+
+- eth0: основной интерфейс с IPv4 адресом 10.0.2.15 (скорее всего, NAT-сеть VirtualBox)
+
+- eth1: второй интерфейс с IPv4 адресом 192.168.1.33 (скорее всего, хостая сеть)
+
+- lo: loopback-интерфейс с адресом 127.0.0.1 (для локальных подключений)
+
+На машине server посмотрели список выданных адресов с помощью ```cat /var/lib/kea/kea-leases4.csv``` ([рис. @fig-024])
+
+![Список выданных адресов](image/лаба3_24.png){#fig-024 width=70%}
+
+Комментарии к выведенной информации команды ```cat /var/lib/kea/kea-leases4.csv```:
+
+Выданные адреса: 
+
+- 192.168.1.30 → MAC 08:00:27:96:af:ab (2 записи)
+
+- 192.168.1.31 → MAC 08:00:27:99:87:06
+
+- 192.168.1.32 → MAC 08:00:27:e8:dc:56 (2 записи)
+
+- 192.168.1.33 → MAC 08:00:27:ea:52:e0 (клиент из вывода ifconfig)
+
+Детали: 
+
+- Срок аренды (valid_lifetime): 3600 секунд (1 час)
+
+- Используется пул адресов в подсети 192.168.1.0/24
+
+- DHCP-сервер Kea работает корректно, выдает адреса
+
+- Некоторые клиенты имеют по две записи
+
+##  Настройка обновления DNS-зоны
+
+Создали ключ на сервере с Bind9 (на виртуальной машине server): ```mkdir -p /etc/named/keys``` и 
+```tsig-keygen -a HMAC-SHA512 DHCP_UPDATER > /etc/named/keys/dhcp_updater.key``` ([рис. @fig-025])
+
+![Создание ключа на сервере с Bind9](image/лаба3_25.png){#fig-025 width=70%}
+
+Далее посмотрели файл */etc/named/keys/dhcp_updater.key* ([рис. @fig-026])
+
+![Файл dhcp_updater.key](image/лаба3_26.png){#fig-026 width=70%}
+
+Поправили права досутпа: ```chown -R named:named /etc/named/keys``` ([рис. @fig-027])
+
+![Поправка прав доступа директории /etc/named/keys](image/лаба3_27.png){#fig-027 width=70%}
+
+В файле */etc/named.conf* подключили ключ: ```include "/etc/named/keys/dhcp_updater.key";``` ([рис. @fig-028])
+
+![Подключение ключа в файле /etc/named.conf](image/лаба3_28.png){#fig-028 width=70%}
+
+Далее на виртуальной машине server под пользователем с правами суперпользователя отредактировали файл */etc/named/eavernikovskaya.net*, разрешив обновление зоны ([рис. @fig-029]):
+
+```
+zone "eavernikovskaya.net" IN {
+	type primary;
+	file "primary/fz/eavernikovskaya.net";
+	update-policy {
+		grant DHCP_UPDATER wildcard *.eavernikovskaya.net A DHCID;
+	};
+};
+
+zone "1.168.192.in-addr.arpa" IN {
+	type primary;
+	file "primary/rz/192.168.1";
+	update-policy {
+		grant DHCP_UPDATER wildcard *.1.168.192.in-addr.arpa PTR DHCID;
+	};
+};
+```
+
+![Редактирование файла /etc/named/eavernikovskaya.net](image/лаба3_29.png){#fig-029 width=70%}
+
+Далее сделали проверку конфигурационного файла: ```named-checkconf``` ([рис. @fig-030])
+
+![Проверка конфигурационного файла](image/лаба3_30.png){#fig-030 width=70%}
+
+После перезапустили DNS-сервер: ```systemctl restart named``` ([рис. @fig-031])
+
+![Перезапуск DNS-сервера](image/лаба3_31.png){#fig-031 width=70%}
+
+Сформировали ключ для Kea. Файл клча назовём */etc/kea/tsig-keys.json*: ```touch /etc/kea/tsig-keys.json``` ([рис. @fig-032])
+
+![Создание файла ключа](image/лаба3_32.png){#fig-032 width=70%}
+
+Далее перенесли ключ на сервер Kea DHCP и переписали его в формате json ([рис. @fig-033]):
+
+```
+"tsig-keys": [
+	{
+		"name": "DHCP_UPDATER",
+		"algorithm": "hmac-sha512",
+		"secret": "наш ключ"
+	}
+],
+```
+
+![Редактирование файла ключа](image/лаба3_33.png){#fig-033 width=70%}
+
+Сменили владельца: ```chown kea:kea /etc/kea/tsig-keys.json``` ([рис. @fig-034])
+
+![Смена владельца файла tsig-keys.json](image/лаба3_34.png){#fig-034 width=70%}
+
+Поправили права доступа: ```chmod 640 /etc/kea/tsig-keys.json``` ([рис. @fig-035])
+
+![Поправка правд доступа для файла tsig-keys.json](image/лаба3_35.png){#fig-035 width=70%}
+
+Далее отредактиовали файл */etc/kea/kea-dhcp-ddns.conf* ([рис. @fig-036]):
+
+```
+{
+	"DhcpDdns":
+	{
+		"ip-address": "127.0.0.1",
+		"port": 53001,
+		"control-socket": {
+			"socket-type": "unix",
+			"socket-name": "/run/kea/kea-ddns-ctrl-socket"
+		},
+		<?include "/etc/kea/tsig-keys.json"?>
+		"forward-ddns" : {
+			"ddns-domains" : [
+				{
+					"name": "eavernikovskaya.net.",
+					"key-name": "DHCP_UPDATER",
+					"dns-servers": [
+						{ "ip-address": "192.168.1.1" }
+					]
+				}
+			]
+		},
+		"reverse-ddns" : {
+			"ddns-domains" : [
+				{
+					"name": "1.168.192.in-addr.arpa.",
+					"key-name": "DHCP_UPDATER",
+					"dns-servers": [
+						{ "ip-address": "192.168.1.1" }
+					]
+				}
+			]
+		},
+		"loggers": [
+			{
+				"name": "kea-dhcp-ddns",
+				"output_options": [
+					{
+						"output": "stdout",
+						"pattern": "%-5p %m\n"
+					}
+				],
+				"severity": "INFO",
+				"debuglevel": 0
+			}
+		]
+	}
+}
+```
+
+![Редактирование файла /etc/kea/kea-dhcp-ddns.conf](image/лаба3_36.png){#fig-036 width=70%}
+
+Изменили владельца файла: chown ```kea:kea /etc/kea/kea-dhcp-ddns.conf``` ([рис. @fig-037])
+
+![Смена владельца файла kea-dhcp-ddns.conf](image/лаба3_37.png){#fig-037 width=70%}
+
+И проверили файл на наличие возможных синтаксических ошибок: ```kea-dhcp-ddns -t /etc/kea/kea-dhcp-ddns.conf``` ([рис. @fig-038])
+
+![Проверка файла kea-dhcp-ddns.conf на синтаксические ошибки](image/лаба3_38.png){#fig-038 width=70%}
+
+Далее запустили службы ddns: ```systemctl enable --now kea-dhcp-ddns.service``` ([рис. @fig-039])
+
+![Запуск службы ddns](image/лаба3_39.png){#fig-039 width=70%}
+
+После проверили статус службы: ```systemctl status kea-dhcp-ddns.service``` ([рис. @fig-040])
+
+![Статус службы ddns](image/лаба3_40.png){#fig-040 width=70%}
+
+Далее внесли изменения в конфигурационный файл */etc/kea/kea-dhcp4.conf*, добавив в него разрешение на динамическое обновление DNS-записей с локального узла прямой и обратной зон ([рис. @fig-041]):
+
+```
+"dhcp-ddns": {
+	"enable-updates": true
+},
+"ddns-qualifying-suffix": "eavernikovskaya.net",
+"ddns-override-client-update": true,
+```
+
+![Редактирование файла kea-dhcp4.conf (5)](image/лаба3_41.png){#fig-041 width=70%}
+
+Далее проверили файл на наличие возможных синтаксических ошибок: ```kea-dhcp4 -t /etc/kea/kea-dhcp4.conf``` ([рис. @fig-042])
+
+![Проверка файла kea-dhcp4.conf на синтаксические ошибки](image/лаба3_42.png){#fig-042 width=70%}
+
+Перезапустили DHCP-сервер: ```systemctl restart kea-dhcp4.service``` ([рис. @fig-043])
+
+![Перезаупск DHCP-сервера](image/лаба3_43.png){#fig-043 width=70%}
+
+Поверили статус: ```systemctl status kea-dhcp4.service``` ([рис. @fig-044])
+
+![Статус DHCP-сервера](image/лаба3_44.png){#fig-044 width=70%}
+
+Далее на машине client переполучили адрес: ```nmcli connection down eth1``` и ```nmcli connection up eth1``` ([рис. @fig-045])
+
+![Получение адреса на машине client](image/лаба3_45.png){#fig-045 width=70%}
+
+В каталоге прямой DNS-зоны */var/named/primary/fz* появился файл *eavernikovskaya.net.jnl*, в котором в бинарном файле автоматически вносятся изменения записей зоны ([рис. @fig-046])
+
+![Файл eavernikovskaya.net.jnl](image/лаба3_46.png){#fig-046 width=70%}
+
+## Анализ работы DHCP-сервера после настройки обновления DNS-зоны
+
+На виртуальной машине client с помощью утилиты *dig* убедимся в наличии DNS-записи о клиенте в прямой DNS-зоне: ```dig @192.168.1.1 client.eavernikovskaya.net``` ([рис. @fig-047])
+
+![Выполнение команды dig @192.168.1.1 client.eavernikovskaya.net](image/лаба3_47.png){#fig-047 width=70%}
+
+Комментарии к выведенной информации команды ```dig @192.168.1.1 client.eavernikovskaya.net```:
+
+- Запрос: DNS-запрос к серверу 192.168.1.1 для разрешения имени client.eavernikovskaya.net
+- Результат: 
+	+ Status: NOERROR – успешное выполнение
+	+ ANSWER: 1 – получен 1 ответ
+	+ A-запись: client.eavernikovskaya.net → 192.168.1.33
+
+## Внесение изменений в настройки внутреннего окружения виртуальной машины
+
+На виртуальной машине server перешли в каталог для внесения изменений в настройки внутреннего окружения */vagrant/provision/server/*, создали в нём каталог *dhcp*, в который поместили в соответствующие подкаталоги конфигурационные файлы DHCP:
+
+```cd /vagrant/provision/server```, 
+```mkdir -p /vagrant/provision/server/dhcp/etc/kea```, 
+```cp -R /etc/kea/* /vagrant/provision/server/dhcp/etc/kea/``` ([рис. @fig-048])
+
+![Создание каталога dhcp, его подкаталогов и копирование туда конфигурационных файлов DHCP](image/лаба3_48.png){#fig-048 width=70%}
+
+Далее заменили конфигурационные файлы DNS-сервера:
+
+```cd /vagrant/provision/server/dns/```,
+```cp -R /var/named/* /vagrant/provision/server/dns/var/named/```,
+```cp -R /etc/named/* /vagrant/provision/server/dns/etc/named/``` ([рис. @fig-049])
+
+![Замена конфигурационных файлов DNS-сервера](image/лаба3_49.png){#fig-049 width=70%}
+
+В каталоге */vagrant/provision/server* создали исполняемый файл *dhcp.sh*:
+
+```cd /vagrant/provision/server```,
+```touch dhcp.sh```,
+```chmod +x dhcp.sh``` ([рис. @fig-050])
+
+![Создание файла dhcp.sh](image/лаба3_50.png){#fig-050 width=70%}
+
+Далее отредактируем файл *dhcp.sh* и пропишем в нём следующий скрипт ([рис. @fig-051]): 
+
+```
+#!/bin/bash
+echo "Provisioning script $0"
+echo "Install needed packages"
+dnf -y install kea
+echo "Copy configuration files"
+cp -R /vagrant/provision/server/dhcp/etc/kea/* /etc/kea/
+echo "Fix permissions"
+chown -R kea:kea /etc/kea
+chmod 640 /etc/kea/tsig-keys.json
+restorecon -vR /etc
+restorecon -vR /var/lib/kea
+echo "Configure firewall"
+firewall-cmd --add-service dhcp
+firewall-cmd --add-service dhcp --permanent
+echo "Start dhcpd service"
+systemctl --system daemon-reload
+systemctl enable --now kea-dhcp4.service
+systemctl enable --now kea-dhcp-ddns.service
+```
+
+Этот скрипт, повторяет произведённые нами действия по установке и настройке DHCP-сервера 
+
+![Скрипт в файле dhcp.sh](image/лаба3_51.png){#fig-051 width=70%}
+
+Для отработки созданного скрипта во время загрузки виртуальной машины server в конфигурационном файле *Vagrantfile* необходимо добавить в разделе конфигурации для сервера ([рис. @fig-052]):
+
+```
+server.vm.provision "server dhcp",
+	type: "shell",
+	preserve_order: true,
+	path: "provision/server/dhcp.sh"
+```
+
+![Редактирование Vagrantfile](image/лаба3_52.png){#fig-052 width=70%}
+
+После этого выклчили виртуальные машины server и client ([рис. @fig-053])
+
+![Выключение виртуальных машин server и client](image/лаба3_53.png){#fig-053 width=70%}
+
+## Контрольные вопросы + ответы
+
+1. В каких файлах хранятся настройки сетевых подключений?
+
+В Linux, настройки сети обычно хранятся в текстовых файлах в директории /etc/network/ или /etc/sysconfig/network-scripts/
+
+2. За что отвечает протокол DHCP?
+
+Протокол DHCP (Dynamic Host Configuration Protocol) отвечает за автоматическое присвоение сетевых настроек устройствам в сети, таких как IP-адресов, маски подсети, шлюза, DNS-серверов и других параметров
+
+3. Поясните принцип работы протокола DHCP. Какими сообщениями обмениваются клиент и сервер, используя протокол DHCP?
+
+Принцип работы протокола DHCP:
+
+- Discover (Обнаружение): клиент отправляет в сеть запрос на обнаружение DHCP-сервера
+- Offer (Предложение): DHCP-сервер отвечает клиенту, предлагая ему конфигурацию сети
+- Request (Запрос): клиент принимает предложение и отправляет запрос на использование предложенной конфигурации
+- Acknowledgment (Подтверждение): DHCP-сервер подтверждает клиенту, что предложенная конфигурация принята и может быть использована
+
+4. В каких файлах обычно находятся настройки DHCP-сервера? За что отвечает каждый из файлов?
+
+в /etc/dhcp/dhcpd.conf. Он содержит информацию о диапазонах IP-адресов, параметрах сети и других опциях DHCP
+
+5. Что такое DDNS? Для чего применяется DDNS?
+
+DDNS (Dynamic Domain Name System) - это система динамического доменного имени. Она используется для автоматического обновления записей DNS, когда IP-адрес узла изменяется. DDNS применяется, например, в домашних сетях, где IP-адреса часто изменяются посредством DHCP
+
+6. Какую информацию можно получить, используя утилиту ifconfig? Приведите примеры с использованием различных опций.
+
+Утилита ifconfig используется для получения информации о сетевых интерфейсах.
+
+Примеры:
+
+- ifconfig: показывает информацию обо всех активных сетевых интерфейсах
+- ifconfig eth0: показывает информацию о конкретном интерфейсе (в данном случае, eth0)
+
+7. Какую информацию можно получить, используя утилиту ping? Приведите примеры с использованием различных опций.
+
+Утилита ping используется для проверки доступности узла в сети. 
+
+Примеры: 
+
+- ping www.yandex.ru: пингует домен www.yandex.ru
+- ping -c 4 192.168.1.1: пингует IP-адрес 192.168.1.1 и отправляет 4 эхо-запроса
+
+# Выводы
+
+В ходе выполнения лабораторной работы №3 мы приобрели практические навыки по установке и конфигурированию DHCP-сервера.
+
+# Список литературы
+
+1. [Лаборатораня работа №3](https://esystem.rudn.ru/pluginfile.php/2854738/mod_resource/content/8/003-dhcp.pdf)
