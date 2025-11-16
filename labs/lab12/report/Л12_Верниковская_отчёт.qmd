@@ -1,0 +1,346 @@
+---
+# Preamble
+
+## Author
+author:
+  name: Верниковская Екатерина Андреевна
+  degrees: DSc
+  orcid: 0000-0002-0877-7063
+  email: kulyabov-ds@rudn.ru
+  affiliation:
+    - name: Российский университет дружбы народов
+      country: Российская Федерация
+      postal-code: 117198
+      city: Москва
+      address: ул. Миклухо-Маклая, д. 6
+## Title
+title: "Отчёт по лабораторной работе №12"
+subtitle: "Дисциплина: Администрирование сетевых подсистем"
+license: "CC BY"
+## Generic options
+lang: ru-RU
+number-sections: true
+toc: true
+toc-title: "Содержание"
+toc-depth: 2
+## Crossref customization
+crossref:
+  lof-title: "Список иллюстраций"
+  lot-title: "Список таблиц"
+  lol-title: "Листинги"
+## Bibliography
+bibliography:
+  - bib/cite.bib
+csl: _resources/csl/gost-r-7-0-5-2008-numeric.csl
+## Formats
+format:
+### Pdf output format
+  pdf:
+    toc: true
+    number-sections: true
+    colorlinks: false
+    toc-depth: 2
+    lof: true # List of figures
+    lot: true # List of tables
+#### Document
+    documentclass: scrreprt
+    papersize: a4
+    fontsize: 12pt
+    linestretch: 1.5
+#### Language
+    babel-lang: russian
+    babel-otherlangs: english
+#### Biblatex
+    cite-method: biblatex
+    biblio-style: gost-numeric
+    biblatexoptions:
+      - backend=biber
+      - langhook=extras
+      - autolang=other*
+#### Misc options
+    csquotes: true
+    indent: true
+    header-includes: |
+      \usepackage{indentfirst}
+      \usepackage{float}
+      \floatplacement{figure}{H}
+      \usepackage[math,RM={Scale=0.94},SS={Scale=0.94},SScon={Scale=0.94},TT={Scale=MatchLowercase,FakeStretch=0.9},DefaultFeatures={Ligatures=Common}]{plex-otf}
+### Docx output format
+  docx:
+    toc: true
+    number-sections: true
+    toc-depth: 2
+---
+
+# Цель работы
+
+Целью данной работы является получение навыков по управлению системным временем и настройке синхронизации времени.
+
+# Задание
+
+1. Изучить команды по настройке параметров времени 
+2. Настроить сервер в качестве сервера синхронизации времени для локальной сети
+3. Написать скрипты для Vagrant, фиксирующие действия по установке и настройке NTP-сервера и клиента
+
+# Выполнение лабораторной работы
+
+## Настройка параметров времени
+
+Загрузили нашу операционную систему и перешли в рабочий каталог с проектом: ```cd /var/tmp/eavernikovskaya/vagrant``` ([рис. @fig-001])
+
+![Рабочий каталог с проектом](image/лаба12_1.png){#fig-001 width=70%}
+
+Запустили виртуальную машину server: ```make server-up``` ([рис. @fig-002]) 
+
+![Запуск виртуальной машины server](image/лаба12_2.png){#fig-002 width=70%}
+
+На сервере посмотрели параметры настройки даты и времени: ```timedatectl``` ([рис. @fig-003])
+
+![Параметры настройки даты и времени на сервере](image/лаба12_3.png){#fig-003 width=70%}
+
+**Сервер (server.eavernikovskaya.net):**
+
+- Временная зона: UTC
+- NTP-синхронизация: активна (NTP service: active)
+- Синхронизация часов: да (System clock synchronized: yes)
+- RTC время: совпадает с системным (18:26:23)
+- RTC в локальной TZ: нет (правильно - использует UTC)
+
+Запустили виртуальную машину client: ```make client-up``` ([рис. @fig-004]) 
+
+![Запуск виртуальной машины client](image/лаба12_4.png){#fig-004 width=70%}
+
+На клиенте также посмотрели параметры настройки даты и времени: ```timedatectl``` ([рис. @fig-005])
+
+![Параметры настройки даты и времени на клиенте](image/лаба12_5.png){#fig-005 width=70%}
+
+**Клиент (client.eavernikovskaya.net):**
+
+- Временная зона: UTC
+- NTP-синхронизация: активна (NTP service: active)
+- Синхронизация часов: да (System clock synchronized: yes)
+- RTC время: небольшое расхождение (18:27:08 vs 18:27:10 системных)
+- RTC в локальной TZ: нет (правильно - использует UTC)
+
+На сервере и клиенте посмотрели текущее системное время: ```date``` ([рис. @fig-006]), ([рис. @fig-007])
+
+![Текущее системное время на сервере](image/лаба12_6.png){#fig-006 width=70%}
+
+![Текущее системное время на клиенте](image/лаба12_7.png){#fig-007 width=70%}
+
+На сервере и клиенте посмотрели аппаратное время: ```hwclock``` ([рис. @fig-008]), ([рис. @fig-009])
+
+![Аппаратное время на сервере](image/лаба12_8.png){#fig-008 width=70%}
+
+![Аппаратное системное время на клиенте](image/лаба12_9.png){#fig-009 width=70%}
+
+## Управление синхронизацией времени
+
+Проверили установлено ли на сервере необходимое программное обеспечение: ```dnf -y install chrony``` ([рис. @fig-010])
+
+![Установка chrony на сервере](image/лаба12_10.png){#fig-010 width=70%}
+
+Проверили источники времени на клиенте и на сервере: ```chronyc sources``` ([рис. @fig-011]), ([рис. @fig-012])
+
+![Источники времени на сервере (1)](image/лаба12_11.png){#fig-011 width=70%}
+
+![Источники времени на клиенте (1)](image/лаба12_12.png){#fig-012 width=70%}
+
+**Сервер (server.eavernikovskaya.net):**
+
+- Кол-во источников: 4 сервера
+- Текущий источник (*): 82.148.19.217 (stratum 2)
+- Резервные источники (_): 3 сервера
+- Stratum уровни: 1-2 (качественные источники)
+- Стабильность: Reach=377 (отличная доступность)
+
+**Клиент (client.eavernikovskaya.net):**
+
+- Кол-во источников: 4 сервера
+- Текущий источник (*): my-csgo.ru (stratum 2)
+- Резервные источники (_): 3 сервера
+- Stratum уровни: 1-2 (качественные источники)
+- Стабильность: Reach=377 (отличная доступность)
+
+На сервере открыли на редактирование файл */etc/chrony.conf* и добавили строку: ```allow 192.168.0.0/16``` ([рис. @fig-013]) 
+
+![Редактирование файла /etc/chrony.conf на сервере](image/лаба12_13.png){#fig-013 width=70%}
+
+На сервере перезапустили службу chronyd: ```systemctl restart chronyd``` ([рис. @fig-014])
+
+![Перезапуск службы chronyd на сервере](image/лаба12_14.png){#fig-014 width=70%}
+
+Настроили межсетевой экран на сервере ([рис. @fig-015]):
+
+```firewall-cmd --add-service=ntp --permanent```
+
+```firewall-cmd --reload```
+
+![Настройка межсетевого экрана](image/лаба12_15.png){#fig-015 width=70%}
+
+На клиенте открыли файл /etc/chrony.conf и добавили строку: ```server server.eavernikovskaya.net iburst```. Удалили все остальные строки с директивой server ([рис. @fig-016])
+
+![Редактирование файла /etc/chrony.conf на клиенте](image/лаба12_16.png){#fig-016 width=70%}
+
+На клиенте перезапустили службу chronyd: ```systemctl restart chronyd``` ([рис. @fig-017])
+
+![Перезапуск службы chronyd на клиенте](image/лаба12_17.png){#fig-017 width=70%}
+
+Снова проверили источники времени на клиенте и на сервере: ```chronyc sources``` ([рис. @fig-018]), ([рис. @fig-019])
+
+![Источники времени на сервере (2)](image/лаба12_18.png){#fig-018 width=70%}
+
+![Источники времени на клиенте (2)](image/лаба12_19.png){#fig-019 width=70%}
+
+**Сервер (server.eavernikovskaya.net):**
+
+- Источники: 4 внешних NTP-сервера stratum 2-3
+- Текущий источник (*): 80.66.81.211 (stratum 2)
+- Роль: NTP-сервер для внутренней сети + синхронизация с внешними источниками
+
+**Клиент (client.eavernikovskaya.net):**
+
+- Единственный источник (*): server.eavernikovskaya.net (stratum 3)
+- Stratum: 3 (получает время от сервера, который сам stratum 2)
+
+## Внесение изменений в настройки внутреннего окружения виртуальной машины
+
+На виртуальной машине server перешлм в каталог для внесения изменений в настройки внутреннего окружения */vagrant/provision/server/* и создали в нём каталог *ntp*, в который поместили в соответствующие подкаталоги конфигурационные файлы ([рис. @fig-020]):
+
+```cd /vagrant/provision/server```
+
+```mkdir -p /vagrant/provision/server/ntp/etc```
+
+```cp -R /etc/chrony.conf /vagrant/provision/server/ntp/etc/```
+
+![Копирование конфигурационных файлов в каталог ntp на сервере](image/лаба12_20.png){#fig-020 width=70%}
+
+В каталоге */vagrant/provision/server* создали исполняемый файл ntp.sh ([рис. @fig-021]): 
+
+```cd /vagrant/provision/server```
+
+```touch ntp.sh```
+
+```chmod +x ntp.sh```
+
+![Создание исполняемого файла ntp.sh на сервере](image/лаба12_21.png){#fig-021 width=70%}
+
+Открыв его на редактирование, прописали в нём следующий скрипт ([рис. @fig-022]):
+
+```
+#!/bin/bash
+echo "Provisioning script $0"
+echo "Install needed packages"
+dnf -y install chrony
+echo "Copy configuration files"
+cp -R /vagrant/provision/server/ntp/etc/* /etc
+restorecon -vR /etc
+echo "Configure firewall"
+firewall-cmd --add-service=ntp
+firewall-cmd --add-service=ntp --permanent
+echo "Restart chronyd service"
+systemctl restart chronyd
+```
+
+![Редактирование файла ntp.sh на сервере](image/лаба12_22.png){#fig-022 width=70%}
+
+На виртуальной машине client перешлм в каталог для внесения изменений в настройки внутреннего окружения */vagrant/provision/client/* и создали в нём каталог *ntp*, в который поместили в соответствующие подкаталоги конфигурационные файлы ([рис. @fig-020]):
+
+```cd /vagrant/provision/client```
+
+```mkdir -p /vagrant/provision/client/ntp/etc```
+
+```cp -R /etc/chrony.conf /vagrant/provision/client/ntp/etc/```
+
+![Копирование конфигурационных файлов в каталог ntp на клиенте](image/лаба12_23.png){#fig-023 width=70%}
+
+В каталоге */vagrant/provision/client* создали исполняемый файл ntp.sh ([рис. @fig-024]): 
+
+```cd /vagrant/provision/client```
+
+```touch ntp.sh```
+
+```chmod +x ntp.sh```
+
+![Создание исполняемого файла ntp.sh на клиенте](image/лаба12_24.png){#fig-024 width=70%}
+
+Открыв его на редактирование, прописали в нём следующий скрипт ([рис. @fig-025]):
+
+```
+#!/bin/bash
+echo "Provisioning script $0"
+echo "Copy configuration files"
+cp -R /vagrant/provision/client/ntp/etc/* /etc
+restorecon -vR /etc
+echo "Restart chronyd service"
+systemctl restart chronyd
+```
+
+![Редактирование файла ntp.sh на клиенте](image/лаба12_25.png){#fig-025 width=70%}
+
+Для отработки созданных скриптов во время загрузки виртуальных машин server и client в конфигурационном файле Vagrantfile необходимо добавить в соответствующих разделах конфигураций для сервера и клиента ([рис. @fig-026]), ([рис. @fig-027]):
+
+```
+server.vm.provision "server ntp",
+	type: "shell",
+	preserve_order: true,
+	path: "provision/server/ntp.sh"
+client.vm.provision "client ntp",
+	type: "shell",
+	preserve_order: true,
+	path: "provision/client/ntp.sh"
+```
+
+![Редактирование файла Vagrantfile (1)](image/лаба12_26.png){#fig-026 width=70%}
+
+![Редактирование файла Vagrantfile (2)](image/лаба12_27.png){#fig-027 width=70%}
+
+После этого можно выключать виртуальные машины server и client: ```make server-halt``` и ```make client-halt``` ([рис. @fig-028])
+
+![Выклчение виртуальных машин server и client](image/лаба12_28.png){#fig-028 width=70%}
+
+## Контрольные вопросы + ответы
+
+1. Почему важна точная синхронизация времени для служб баз данных?
+
+Синхронизация времени необходима для обеспечения корректности временных меток в базе данных. Распределенные системы баз данных чувствительны к разнице во времени между узлами, и несогласованность времени может привести к проблемам с транзакциями и целостью данных.
+
+2. Почему служба проверки подлинности Kerberos сильно зависит от правильной синхронизации времени?
+
+Kerberos использует временные метки для предотвращения атак воспроизведения билетов. Если время не синхронизировано, билеты могут быть считаны как недействительные, что приведет к проблемам с аутентификацией.
+
+3. Какая служба используется по умолчанию для синхронизации времени на RHEL 7?
+
+На RHEL 7 служба синхронизации времени по умолчанию - chrony.
+
+4. Какова страта по умолчанию для локальных часов?
+
+Страта 0 (нулевая) - локальные часы, являющиеся источником времени.
+
+5. Какой порт брандмауэра должен быть открыт, если вы настраиваете свой сервер как одноранговый узел NTP?
+
+Порт 123 (UDP) должен быть открыт для протокола NTP.
+
+6. Какую строку вам нужно включить в конфигурационный файл chrony, если вы хотите быть сервером времени, даже если внешние серверы NTP недоступны?
+
+В конфигурационном файле /etc/chrony.conf добавьте строку: local stratum 10
+
+7. Какую страту имеет хост, если нет текущей синхронизации времени NTP?
+
+Страта 16 - хост без синхронизации времени NTP
+
+8. Какую команду вы бы использовали на сервере с chrony, чтобы узнать, с какими серверами он синхронизируется?
+
+chronyc sources -v.
+
+9. Как вы можете получить подробную статистику текущих настроек времени для процесса chrony вашего сервера?
+
+chronyc tracking Эта команда предоставляет подробную информацию о текущей синхронизации времени, дисперсии, коррекции часов и других параметрах.
+
+# Выводы
+
+В ходе выполнения лабораторной работы №12 мы получили навыки по управлению системным временем и настройке синхронизации времени.
+
+# Список литературы
+
+1. [Лаборатораня работа №12](https://esystem.rudn.ru/pluginfile.php/2854778/mod_resource/content/5/012-ntp.pdf)
