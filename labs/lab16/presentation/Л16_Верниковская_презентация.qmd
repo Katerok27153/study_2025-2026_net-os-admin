@@ -1,0 +1,227 @@
+---
+# Preamble
+
+## Author
+author:
+  name: Верниковская Екатерина Андреевна
+  degrees: DSc
+  email: 11322361366@pfur.ru
+  affiliation:
+    - name: Российский университет дружбы народов
+      country: Российская Федерация
+      postal-code: 117198
+      city: Москва
+      address: ул. Миклухо-Маклая, д. 6
+
+## Title
+title: Презентация по лабораторной работе №16
+subtitle: Администрирование сетевых подсистем
+license: CC BY
+date: 2025-12-02
+
+## Generic options
+lang: ru-RU
+crossref:
+  lof-title: Список иллюстраций
+  lot-title: Список таблиц
+  lol-title: Листинги
+
+## Fonts 
+mainfont: PT Serif 
+romanfont: PT Serif 
+sansfont: PT Sans 
+monofont: PT Mono 
+mainfontoptions: Ligatures=TeX 
+romanfontoptions: Ligatures=TeX 
+sansfontoptions: Ligatures=TeX,Scale=MatchLowercase 
+monofontoptions: Scale=MatchLowercase,Scale=0.9
+
+## Formats
+format:
+### Pdf output format
+  beamer:
+    toc: true
+    toc-title: Содержание
+    number-sections: true
+    colorlinks: false
+    toc-depth: 2
+    slide_level: 2
+    aspectratio: 169
+    section-titles: true
+    theme: metropolis
+    themeoptions: progressbar=frametitle,sectionpage=progressbar,numbering=fraction
+    pdf-engine: xelatex
+    fontenc: T2A
+#### Language
+    babel-lang: russian
+    babel-otherlangs: english
+
+### Html output
+  revealjs:
+    transition: slide
+    margin: 0.2
+    smaller: false
+    output-ext: html
+    theme: beige
+    logo: _resources/image/logo_rudn.png
+---
+
+# Вводная часть
+
+## Цель работы
+
+Целью данной работы получить навыки работы с программным средством Fail2ban для обеспечения базовой защиты от атак типа «brute force».
+
+## Задание
+
+1. Установить и настроить Fail2ban для отслеживания работы установленных на сервере служб
+2. Проверить работу Fail2ban посредством попыток несанкционированного доступа с клиента на сервер через SSH
+3. Написать скрипт для Vagrant, фиксирующий действия по установке и настройке Fail2ban
+
+# Выполнение лабораторной работы
+
+## Защита с помощью Fail2ban
+
+![Рабочий каталог с проектом](image/лаба16_1.png){#fig-001 width=90%}
+
+## Защита с помощью Fail2ban
+
+![Запуск виртуальной машины server](image/лаба16_2.png){#fig-002 width=70%}
+
+## Защита с помощью Fail2ban
+
+![Переход в режим суперпользователя на server](image/лаба16_3.png){#fig-003 width=90%}
+
+## Защита с помощью Fail2ban
+
+![Установка fail2ban](image/лаба16_4.png){#fig-004 width=90%}
+
+## Защита с помощью Fail2ban
+
+![Запуск сервера fail2ban](image/лаба16_5.png){#fig-005 width=90%}
+
+## Защита с помощью Fail2ban
+
+![Просмотр журнала событий fail2ban (1)](image/лаба16_6.png){#fig-006 width=90%}
+
+## Защита с помощью Fail2ban
+
+![Создание файла с локальной конфигурацией fail2ban](image/лаба16_7.png){#fig-007 width=90%}
+
+## Защита с помощью Fail2ban
+
+![Редактирование файла /etc/fail2ban/jail.d/customisation.local (1)](image/лаба16_8.png){#fig-008 width=70%}
+
+## Защита с помощью Fail2ban
+
+![Перезапуск fail2ban (1)](image/лаба16_9.png){#fig-009 width=90%}
+
+## Защита с помощью Fail2ban
+
+![Просмотр журнала событий fail2ban (2)](image/лаба16_10.png){#fig-010 width=60%}
+
+## Защита с помощью Fail2ban
+
+![Редактирование файла /etc/fail2ban/jail.d/customisation.local (2)](image/лаба16_11.png){#fig-011 width=50%}
+
+## Защита с помощью Fail2ban
+
+![Перезапуск fail2ban (2)](image/лаба16_12.png){#fig-012 width=90%}
+
+## Защита с помощью Fail2ban
+
+![Просмотр журнала событий fail2ban (3)](image/лаба16_13.png){#fig-013 width=70%}
+
+## Защита с помощью Fail2ban
+
+![Редактирование файла /etc/fail2ban/jail.d/customisation.local (3)](image/лаба16_14.png){#fig-014 width=70%}
+
+## Защита с помощью Fail2ban
+
+![Перезапуск fail2ban (3)](image/лаба16_15.png){#fig-015 width=90%}
+
+## Защита с помощью Fail2ban
+
+![Просмотр журнала событий fail2ban (4)](image/лаба16_16.png){#fig-016 width=70%}
+
+## Проверка работы Fail2ban
+
+![Статус fail2ban](image/лаба16_17.png){#fig-017 width=90%}
+
+## Проверка работы Fail2ban
+
+![Статус защиты SSH в fail2ban (1)](image/лаба16_18.png){#fig-018 width=70%}
+
+## Проверка работы Fail2ban
+
+![установка максимального количества ошибок для SSH](image/лаба16_19.png){#fig-019 width=90%}
+
+## Проверка работы Fail2ban
+
+![Запуск виртуальной машины client](image/лаба16_20.png){#fig-020 width=70%}
+
+## Проверка работы Fail2ban
+
+![Попытка зайти по SSH на сервер с клиента с неправильным паролем](image/лаба16_21.png){#fig-021 width=70%}
+
+## Проверка работы Fail2ban
+
+![Статус защиты SSH в fail2ban (2)](image/лаба16_22.png){#fig-022 width=70%}
+
+## Проверка работы Fail2ban
+
+![Разблокировка IP-адреса клиента](image/лаба16_23.png){#fig-023 width=90%} 
+
+## Проверка работы Fail2ban
+
+![Статус защиты SSH в fail2ban (3)](image/лаба16_24.png){#fig-024 width=70%}
+
+## Проверка работы Fail2ban
+
+![Редактирование файла /etc/fail2ban/jail.d/customisation.local (4)](image/лаба16_25.png){#fig-025 width=70%}
+
+## Проверка работы Fail2ban
+
+![Перезапуск fail2ban (4)](image/лаба16_26.png){#fig-026 width=90%}
+
+## Проверка работы Fail2ban
+
+![Просмотр журнала событий fail2ban (5)](image/лаба16_27.png){#fig-027 width=70%}
+
+## Проверка работы Fail2ban
+
+![Попытка зайти по SSH на сервер с клиента с неправильным паролем снова](image/лаба16_28.png){#fig-028 width=70%}
+
+## Проверка работы Fail2ban
+
+![Статус защиты SSH в fail2ban (4)](image/лаба16_29.png){#fig-029 width=70%}
+
+## Внесение изменений в настройки внутреннего окружения виртуальной машины
+
+![Копирование конфигурационных файлов в каталог protect на сервере](image/лаба16_30.png){#fig-030 width=70%}
+
+## Внесение изменений в настройки внутреннего окружения виртуальной машины
+
+![Создание исполняемого файла protect.sh на сервере](image/лаба16_31.png){#fig-031 width=70%}
+
+## Внесение изменений в настройки внутреннего окружения виртуальной машины
+
+![Редактирование файла protect.sh на сервере](image/лаба16_32.png){#fig-032 width=70%}
+
+## Внесение изменений в настройки внутреннего окружения виртуальной машины
+
+![Редактирование файла Vagrantfile](image/лаба16_33.png){#fig-033 width=70%}
+
+## Внесение изменений в настройки внутреннего окружения виртуальной машины
+
+![Выклчение виртуальных машин server и client](image/лаба16_34.png){#fig-034 width=70%}
+
+# Подведение итогов
+
+## Выводы
+
+В ходе выполнения лабораторной работы №16 мы получили навыки работы с программным средством Fail2ban для обеспечения базовой защиты от атак типа «brute force».
+
+## Список литературы
+
+1. [Лаборатораня работа №16](https://esystem.rudn.ru/pluginfile.php/2854794/mod_resource/content/6/016-protect.pdf)
